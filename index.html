@@ -247,31 +247,21 @@ function render(data) {
   document.getElementById("last-update").textContent =
     "Bijgewerkt: " + ts.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
 
-  const nl = data.nederland ?? [];
-  const de = data.duitsland ?? [];
+  const nl = (data.nederland ?? []).map(s => ({ ...s, flag: "🇳🇱" }));
+  const de = (data.duitsland ?? []).map(s => ({ ...s, flag: "🇩🇪" }));
 
-  // Determine cheapest per fuel type for badge
+  const all = [...nl, ...de].sort((a, b) => {
+    const priceA = a.fuels.euro95 ?? a.fuels.e10 ?? 999;
+    const priceB = b.fuels.euro95 ?? b.fuels.e10 ?? 999;
+    return priceA - priceB;
+  });
+
   const cheapest = findCheapest(nl, de);
 
   let html = "";
+  for (const s of all) html += stationCard(s, cheapest, s.flag);
 
-  // ── Nederland ──
-  html += sectionHeader("🇳🇱 Nederland");
-  if (nl.length === 0) {
-    html += `<div class="empty-note">Geen stations gevonden</div>`;
-  } else {
-    for (const s of nl) html += stationCard(s, cheapest, "nl");
-  }
-
-  // ── Duitsland ──
-  html += sectionHeader("🇩🇪 Duitsland (Herongen/Straelen)");
-  if (de.length === 0) {
-    html += `<div class="empty-note">Geen stations gevonden</div>`;
-  } else {
-    for (const s of de) html += stationCard(s, cheapest, "de");
-  }
-
-  document.getElementById("main").innerHTML = html;
+  document.getElementById("main").innerHTML = html || `<div class="empty-note">Geen stations gevonden</div>`;
 }
 
 function sectionHeader(label) {
@@ -302,7 +292,7 @@ function stationCard(station, cheapest, country) {
     <div class="station-card">
       <div class="station-meta">
         <div>
-          <div class="station-name">${esc(station.name)}</div>
+          <div class="station-name">${esc(station.flag ?? "")} ${esc(station.name)}</div>
           <div class="station-address">${esc(station.address)}</div>
         </div>
         ${region ? `<div class="station-region">${esc(region)}</div>` : ""}
