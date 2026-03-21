@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Brandstof">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Brandstofprijzen</title>
+  <link rel="manifest" href="manifest.json">
+  <!-- Apple touch icon (genereer via realfavicongenerator.net of gebruik placeholder) -->
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0f1a;
+      --surface:   #1a1a2e;
+      --surface2:  #252540;
+      --border:    rgba(255,255,255,0.08);
+      --text:      #e8e8f0;
+      --muted:     #888899;
+      --e10:       #f97316;
+      --e5:        #6366f1;
+      --euro95:    #f97316;
+      --euro98:    #a78bfa;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --radius:    14px;
+      --safe-top:  env(safe-area-inset-top, 0px);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: calc(var(--safe-top) + 14px) 16px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    .header-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 8px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .15s;
+    }
+    .refresh-btn:active { opacity: .6; }
+    .spin { display: inline-block; }
+    .spinning { animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Layout ── */
+    main { padding: 16px; max-width: 560px; margin: 0 auto; }
+
+    /* ── Country section ── */
+    .country-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 20px 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+    }
+    .country-header::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Station card ── */
+    .station-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .station-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .station-name    { font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .station-address { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .station-region  {
+      font-size: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .fuels { display: flex; gap: 8px; flex-wrap: wrap; }
+    .fuel-pill {
+      flex: 1;
+      min-width: 90px;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .fuel-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .fuel-price  { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .fuel-sub    { font-size: 11px; color: var(--muted); }
+    .fuel-diff   { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+    .label-e10    { color: var(--e10); }
+    .label-e5     { color: var(--e5); }
+    .label-euro95 { color: var(--euro95); }
+    .label-euro98 { color: var(--euro98); }
+
+    .diff-cheaper { color: var(--green); }
+    .diff-dearer  { color: var(--red); }
+
+    /* ── States ── */
+    .error-box {
+      background: rgba(239,68,68,.1);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      color: #fca5a5;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: var(--radius);
+      height: 100px;
+      margin-bottom: 10px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .empty-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 30px 0;
+    }
+
+    /* ── Cheapest highlight ── */
+    .cheapest-badge {
+      font-size: 10px;
+      background: rgba(34,197,94,.15);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,.3);
+      border-radius: 5px;
+      padding: 2px 6px;
+      margin-left: 6px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title">⛽ Brandstofprijzen</div>
+    <div class="header-sub" id="last-update">Laden…</div>
+  </div>
+  <button class="refresh-btn" onclick="load()">
+    <span class="spin" id="spin-icon">↻</span> Vernieuwen
+  </button>
+</header>
+
+<main id="main">
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+</main>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────
+// Pas aan na deployment van je Cloudflare Worker:
+const WORKER_URL = "https://jouw-worker.jouw-subdomain.workers.dev";
+
+// Tankvolume voor totaalprijs (jouw mediaan volume)
+const TANK_LITERS = 45;
+// ─────────────────────────────────────────────────────────────
+
+let lastData = null;
+
+async function load() {
+  const spin = document.getElementById("spin-icon");
+  spin.classList.add("spinning");
+  document.getElementById("last-update").textContent = "Ophalen…";
+
+  try {
+    const resp = await fetch(WORKER_URL, { cache: "no-store" });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    lastData = await resp.json();
+    render(lastData);
+  } catch (e) {
+    document.getElementById("main").innerHTML =
+      `<div class="error-box">⚠️ Kon prijzen niet ophalen.<br><small>${e.message}</small></div>`;
+    document.getElementById("last-update").textContent = "Fout bij ophalen";
+  } finally {
+    spin.classList.remove("spinning");
+  }
+}
+
+function render(data) {
+  const ts = new Date(data.timestamp);
+  document.getElementById("last-update").textContent =
+    "Bijgewerkt: " + ts.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+
+  const nl = data.nederland ?? [];
+  const de = data.duitsland ?? [];
+
+  // Determine cheapest per fuel type for badge
+  const cheapest = findCheapest(nl, de);
+
+  let html = "";
+
+  // ── Nederland ──
+  html += sectionHeader("🇳🇱 Nederland");
+  if (nl.length === 0) {
+    html += `<div class="empty-note">Geen stations gevonden</div>`;
+  } else {
+    for (const s of nl) html += stationCard(s, cheapest, "nl");
+  }
+
+  // ── Duitsland ──
+  html += sectionHeader("🇩🇪 Duitsland (Herongen/Straelen)");
+  if (de.length === 0) {
+    html += `<div class="empty-note">Geen stations gevonden</div>`;
+  } else {
+    for (const s of de) html += stationCard(s, cheapest, "de");
+  }
+
+  document.getElementById("main").innerHTML = html;
+}
+
+function sectionHeader(label) {
+  return `<div class="country-header">${label}</div>`;
+}
+
+function stationCard(station, cheapest, country) {
+  const fuels = station.fuels ?? {};
+  const region = station.region ?? (country === "de" ? "Duitsland" : "");
+
+  const fuelPills = Object.entries(fuels)
+    .filter(([_, v]) => v !== null && v > 0)
+    .map(([type, price]) => {
+      const label = fuelLabel(type);
+      const cls   = `label-${type}`;
+      const total = (price * TANK_LITERS).toFixed(2);
+      const isCheapest = cheapest[type] === price;
+      const badge = isCheapest ? `<span class="cheapest-badge">goedkoopste</span>` : "";
+      return `
+        <div class="fuel-pill">
+          <div class="fuel-label ${cls}">${label}${badge}</div>
+          <div class="fuel-price">€${price.toFixed(3)}</div>
+          <div class="fuel-sub">volle tank ≈ €${total}</div>
+        </div>`;
+    }).join("");
+
+  return `
+    <div class="station-card">
+      <div class="station-meta">
+        <div>
+          <div class="station-name">${esc(station.name)}</div>
+          <div class="station-address">${esc(station.address)}</div>
+        </div>
+        ${region ? `<div class="station-region">${esc(region)}</div>` : ""}
+      </div>
+      <div class="fuels">${fuelPills || "<span style='color:var(--muted);font-size:13px'>Geen prijsinfo</span>"}</div>
+    </div>`;
+}
+
+function fuelLabel(type) {
+  return { e10: "E10", e5: "E5", euro95: "Euro 95", euro98: "Euro 98" }[type] ?? type;
+}
+
+function findCheapest(nl, de) {
+  const all = [...nl, ...de];
+  const result = {};
+  for (const s of all) {
+    for (const [type, price] of Object.entries(s.fuels ?? {})) {
+      if (price && (result[type] === undefined || price < result[type])) {
+        result[type] = price;
+      }
+    }
+  }
+  return result;
+}
+
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Auto-refresh elke 15 minuten
+setInterval(load, 15 * 60 * 1000);
+load();
+</script>
+</body>
+</html>
