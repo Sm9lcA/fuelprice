@@ -117,6 +117,9 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     .fuel-price  { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
     .fuel-price sup {
@@ -160,16 +163,19 @@
     }
 
     /* ── Cheapest highlight ── */
-    .cheapest-badge {
-      font-size: 10px;
+    .cheapest-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
       background: rgba(34,197,94,.15);
-      color: var(--green);
       border: 1px solid rgba(34,197,94,.3);
-      border-radius: 5px;
-      padding: 2px 6px;
-      margin-left: 6px;
-      font-weight: 600;
-      vertical-align: middle;
+      border-radius: 4px;
+      color: var(--green);
+      font-size: 9px;
+      font-weight: 700;
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -240,6 +246,11 @@ function render(data) {
   document.getElementById("main").innerHTML = html || `<div class="empty-note">Geen stations gevonden</div>`;
 }
 
+// Formatteert een prijs met komma als decimaalscheidingsteken
+function formatPrice(price) {
+  return price.toFixed(3).replace(".", ",");
+}
+
 function stationCard(station, cheapest) {
   const fuels = station.fuels ?? {};
   const region = station.region ?? "";
@@ -252,13 +263,19 @@ function stationCard(station, cheapest) {
       const price = fuels[type];
       const label = fuelLabel(type);
       const cls   = `label-${type}`;
-      const total = (price * TANK_LITERS).toFixed(2);
+      const total = (price * TANK_LITERS).toFixed(2).replace(".", ",");
       const isCheapest = cheapest[type] === price;
-      const badge = isCheapest ? `<span class="cheapest-badge">goedkoopste</span>` : "";
+      const badge = isCheapest ? `<span class="cheapest-icon" title="Goedkoopste">✓</span>` : "";
+
+      // Splits prijs in geheel deel + 2 decimalen + derde decimaal als superscript
+      const [euros, cents3] = price.toFixed(3).split(".");
+      const cents2 = cents3.slice(0, 2);
+      const third  = cents3.slice(2);
+
       return `
         <div class="fuel-pill">
           <div class="fuel-label ${cls}">${label}${badge}</div>
-          <div class="fuel-price">€${price.toFixed(2)}<sup>${Math.round(price * 1000) % 10}</sup></div>
+          <div class="fuel-price">€${euros},${cents2}<sup>${third}</sup></div>
           <div class="fuel-sub">volle tank ≈ €${total}</div>
         </div>`;
     }).join("");
