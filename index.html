@@ -9,7 +9,6 @@
   <meta name="theme-color" content="#1a1a2e">
   <title>Brandstofprijzen</title>
   <link rel="manifest" href="manifest.json">
-  <!-- Apple touch icon (genereer via realfavicongenerator.net of gebruik placeholder) -->
   <link rel="apple-touch-icon" href="icon-192.png">
 
   <style>
@@ -140,9 +139,10 @@
       text-transform: uppercase;
       letter-spacing: .6px;
     }
-    .fuel-price  { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-    .fuel-sub    { font-size: 11px; color: var(--muted); }
-    .fuel-diff   { font-size: 11px; font-weight: 600; margin-top: 2px; }
+    .fuel-price     { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+    .fuel-price-sup { font-size: 13px; font-weight: 700; vertical-align: super; line-height: 1; margin-left: 1px; }
+    .fuel-sub       { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .fuel-diff      { font-size: 11px; font-weight: 600; margin-top: 2px; }
 
     .label-e10    { color: var(--e10); }
     .label-e5     { color: var(--e5); }
@@ -214,10 +214,7 @@
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────
-// Pas aan na deployment van je Cloudflare Worker:
 const WORKER_URL = "https://fragrant-meadow-df17.j79825.workers.dev";
-
-// Tankvolume voor totaalprijs (jouw mediaan volume)
 const TANK_LITERS = 45;
 // ─────────────────────────────────────────────────────────────
 
@@ -264,8 +261,10 @@ function render(data) {
   document.getElementById("main").innerHTML = html || `<div class="empty-note">Geen stations gevonden</div>`;
 }
 
-function sectionHeader(label) {
-  return `<div class="country-header">${label}</div>`;
+function formatPrice(price) {
+  const main = price.toFixed(2);
+  const lastDigit = Math.round(price * 1000) % 10;
+  return `\u20AC${main}<span class="fuel-price-sup">${lastDigit}</span>`;
 }
 
 function stationCard(station, cheapest, country) {
@@ -283,8 +282,8 @@ function stationCard(station, cheapest, country) {
       return `
         <div class="fuel-pill">
           <div class="fuel-label ${cls}">${label}${badge}</div>
-          <div class="fuel-price">€${price.toFixed(3)}</div>
-          <div class="fuel-sub">volle tank ≈ €${total}</div>
+          <div class="fuel-price">${formatPrice(price)}</div>
+          <div class="fuel-sub">volle tank \u2248 \u20AC${total}</div>
         </div>`;
     }).join("");
 
