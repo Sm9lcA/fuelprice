@@ -21,8 +21,6 @@
       --border:    rgba(255,255,255,0.08);
       --text:      #e8e8f0;
       --muted:     #888899;
-      --e10:       #f97316;
-      --e5:        #6366f1;
       --euro95:    #f97316;
       --euro98:    #a78bfa;
       --green:     #22c55e;
@@ -75,25 +73,6 @@
     /* ── Layout ── */
     main { padding: 16px; max-width: 560px; margin: 0 auto; }
 
-    /* ── Country section ── */
-    .country-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 20px 0 10px;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .8px;
-      color: var(--muted);
-    }
-    .country-header::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
     /* ── Station card ── */
     .station-card {
       background: var(--surface);
@@ -139,18 +118,11 @@
       text-transform: uppercase;
       letter-spacing: .6px;
     }
-    .fuel-price     { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
-    .fuel-price-sup { font-size: 13px; font-weight: 700; vertical-align: super; line-height: 1; margin-left: 1px; }
-    .fuel-sub       { font-size: 11px; color: var(--muted); margin-top: 4px; }
-    .fuel-diff      { font-size: 11px; font-weight: 600; margin-top: 2px; }
+    .fuel-price  { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .fuel-sub    { font-size: 11px; color: var(--muted); }
 
-    .label-e10    { color: var(--e10); }
-    .label-e5     { color: var(--e5); }
     .label-euro95 { color: var(--euro95); }
     .label-euro98 { color: var(--euro98); }
-
-    .diff-cheaper { color: var(--green); }
-    .diff-dearer  { color: var(--red); }
 
     /* ── States ── */
     .error-box {
@@ -248,32 +220,29 @@ function render(data) {
   const de = (data.duitsland ?? []).map(s => ({ ...s, flag: "🇩🇪" }));
 
   const all = [...nl, ...de].sort((a, b) => {
-    const priceA = a.fuels.euro95 ?? a.fuels.e10 ?? 999;
-    const priceB = b.fuels.euro95 ?? b.fuels.e10 ?? 999;
+    const priceA = a.fuels.euro95 ?? 999;
+    const priceB = b.fuels.euro95 ?? 999;
     return priceA - priceB;
   });
 
-  const cheapest = findCheapest(nl, de);
+  const cheapest = findCheapest([...nl, ...de]);
 
   let html = "";
-  for (const s of all) html += stationCard(s, cheapest, s.flag);
+  for (const s of all) html += stationCard(s, cheapest);
 
   document.getElementById("main").innerHTML = html || `<div class="empty-note">Geen stations gevonden</div>`;
 }
 
-function formatPrice(price) {
-  const main = price.toFixed(2);
-  const lastDigit = Math.round(price * 1000) % 10;
-  return `\u20AC${main}<span class="fuel-price-sup">${lastDigit}</span>`;
-}
-
-function stationCard(station, cheapest, country) {
+function stationCard(station, cheapest) {
   const fuels = station.fuels ?? {};
-  const region = station.region ?? (country === "de" ? "Duitsland" : "");
+  const region = station.region ?? "";
 
-  const fuelPills = Object.entries(fuels)
-    .filter(([_, v]) => v !== null && v > 0)
-    .map(([type, price]) => {
+  // Vaste volgorde: euro95 altijd eerst, dan euro98
+  const fuelOrder = ["euro95", "euro98"];
+  const fuelPills = fuelOrder
+    .filter(type => fuels[type] != null && fuels[type] > 0)
+    .map(type => {
+      const price = fuels[type];
       const label = fuelLabel(type);
       const cls   = `label-${type}`;
       const total = (price * TANK_LITERS).toFixed(2);
@@ -282,8 +251,8 @@ function stationCard(station, cheapest, country) {
       return `
         <div class="fuel-pill">
           <div class="fuel-label ${cls}">${label}${badge}</div>
-          <div class="fuel-price">${formatPrice(price)}</div>
-          <div class="fuel-sub">volle tank \u2248 \u20AC${total}</div>
+          <div class="fuel-price">€${price.toFixed(3)}</div>
+          <div class="fuel-sub">volle tank ≈ €${total}</div>
         </div>`;
     }).join("");
 
@@ -301,11 +270,10 @@ function stationCard(station, cheapest, country) {
 }
 
 function fuelLabel(type) {
-  return { e10: "E10", e5: "E5", euro95: "Euro 95", euro98: "Euro 98" }[type] ?? type;
+  return { euro95: "Euro 95 (E10)", euro98: "Euro 98 (E5)" }[type] ?? type;
 }
 
-function findCheapest(nl, de) {
-  const all = [...nl, ...de];
+function findCheapest(all) {
   const result = {};
   for (const s of all) {
     for (const [type, price] of Object.entries(s.fuels ?? {})) {
