@@ -1,7 +1,7 @@
 # Deployment instructies — Brandstofprijzen PWA
 
 ## Overzicht
-- **brandstof-worker.js** → Cloudflare Worker (proxy voor ANWB + Tankerkoenig)
+- **brandstof-worker.js** → Cloudflare Worker (proxy voor API's)
 - **index.html + manifest.json** → GitHub Pages (de PWA die je op je iPhone zet)
 
 ---
@@ -70,10 +70,10 @@ In `index.html`:
 const TANK_LITERS = 45;  // ← jouw mediaan volume
 ```
 
-### Nieuwe regio toevoegen (ANWB)
+### Nieuwe regio toevoegen (NL)
 In `brandstof-worker.js`:
 ```js
-const ANWB_REGIONS = [
+const NL_REGIONS = [
   ...
   { id: "nieuw", label: "Nieuwe plek", bounds: "lat1,lon1:lat2,lon2" },
 ];
@@ -81,7 +81,7 @@ const ANWB_REGIONS = [
 
 ### Duitsland: grotere zoekradius
 ```js
-// In fetchTankerkoenig(), pas &rad=1 aan naar bijv. &rad=3
+// In fetchTK(), pas &rad=1 aan naar bijv. &rad=3
 ```
 
 ---
